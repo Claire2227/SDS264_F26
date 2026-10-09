@@ -1,0 +1,226 @@
+---
+title: "Mini Project 1 - Claire Faulkner"
+format: pdf
+editor_options: 
+  chunk_output_type: console
+---
+# Introduction
+One Direction was a band that formed in 2010 on the show The X Factor and released and performed music together until 2016. Members included Niall Horan, Zayn Malik, Liam Payne, Harry Styles, and Louis Tomlinson. During their time together, One Direction released five studio albums, "Up All Night", "Take Me Home", "Midnight Memories", "Four", and "Made in the A.M.", in chronological order of release. These five albums are the focus of my mini project. One Direction sold over 70 million records globally and made history as the first group to have their first four studio albums debut at number one on the U.S. Billboard 200 chart. Their most popular song by sales, "What Makes You Beautiful", has over one billion views on YouTube, and their highest-streamed song on Spotify, "Night Changes", has over 2.7 billion streams. Even a decade later, One Direction still has over 45 million monthly listeners on Spotify. Although their time together was not long, One Direction had a great cultural and musical impact. My project will analyze lyrics from their five albums by using sentiment analysis and tf-idf analysis to gain more insight on the composition of One Direction song lyrics.
+
+
+```{r}
+#| include: false
+
+library(tidyverse)
+library(tidytext)
+library(wordcloud)
+
+one_direction <- read_csv(
+  "C:\\Users\\cef22\\Downloads\\One_Direction_Proper_Dataset.csv"
+)
+``` 
+
+```{r}
+#| include: false
+
+get_stopwords() |> print(n = 50)
+bing_sentiments <- get_sentiments(lexicon = "bing")
+```
+
+
+
+```{r}
+#| include: false
+
+one_direction <- one_direction |> 
+  rename(
+    song_number = S.No.,
+    song = Song,
+    artist = `Artist(s)`,
+    writers = `Writer(s)`,
+    album = `Album(s)`,
+    year = Year,
+    lyrics = Lyrics
+) |>
+  mutate(
+#three str expressions in the following lines: str_remove_all, str_trim, str_replace_all, str_to_lower
+# three reg ex in the following lines: '^"|"$', "\\[.*\\]", "\\\n", " "
+    song = str_remove_all(song, '^"|"$'),
+    writers = str_remove_all(writers, '^"|"$'),
+    lyrics = str_trim(lyrics),
+    lyrics = str_remove_all(lyrics, '^"|"$'),
+    lyrics = str_remove_all(lyrics, "\\[.*\\]"),
+    lyrics = str_replace_all(lyrics, "\\\n", " "),
+    lyrics = str_to_lower(lyrics)
+)
+  
+print(one_direction, n = 10)
+```
+
+```{r}
+#| include: false
+
+tidy_songs <- one_direction |>
+  unnest_tokens(word, lyrics, token = "words") |>
+  anti_join(stop_words) |>
+  count(word) |>
+  filter(word != "NA") |>
+  arrange(desc(n))
+```
+
+
+```{r}
+#| echo: false
+#| fig-cap: "Figure 1: Word Cloud displaying the most common words in One Direction songs with frequency based off the size of the word."
+
+wordcloud(
+  words = tidy_songs$word, 
+  freq = tidy_songs$n, 
+  max.words = 100, 
+  random.order = FALSE,
+  colors = brewer.pal(6, "Dark2")
+)
+
+```
+
+# Most Common Words in One Direction Songs
+The first thing I wanted to look at was the most common words (aside from stop words) across all of One Direction's songs. To do this, I created a word cloud display that matches the size of the word with its number of occurrences across all the lyrics. From the word cloud it is shown that "na", "ooh", and "yeah" are some of the most common. These vocal fills are extremely common in One Direction Songs. For example, "What Makes You Beautiful" has "na" appear thirty times in a row in the song. Although they may be considered nonsense words, including these vocal fills in the word clouds provides an idea of the style of One Direction songs. Aside from that, other common words or themes seem to be those surrounding romance such as "baby", "love", "heart", and "kiss". Many of One Direction's songs center on these themes, so the word cloud seems like a good representation of the ideas contained in One Direction songs.
+
+
+```{r}
+#| echo: false
+#| fig-cap: "Figure 2: Number of occurrences of ten most common negative and positive words in One Direction songs."
+
+pos_neg <- one_direction |>
+  unnest_tokens(word, lyrics, token = "words") |>
+  anti_join(stop_words) |>
+  inner_join(bing_sentiments) |>
+  count(sentiment, word, sort = TRUE) |>
+  group_by(sentiment) |>
+  slice_max(n, n = 10) |>
+  ungroup() |>
+  ggplot(aes(x = fct_reorder(word, n), 
+             y = n, 
+             fill = sentiment)) +
+    geom_col() +
+    coord_flip () +
+    facet_wrap(~ sentiment, scales = "free") +
+    labs(y = "Number of Occurrences",
+         x = "Word",
+         fill = "Sentiment")
+
+pos_neg
+```
+
+# Most Common Words in One Direction Songs Sorted by Sentiment
+I next wanted to explore the most common words sorted by positive and negative sentiment by using Bing sentiments. Some of the words seen in the word cloud above such as "kiss" are not included in Bing sentiments, so they will not be included in sentiment analysis using Bing. This may have some affect on sentiment analysis for One Direction songs, because as seen in the word cloud, "kiss" is a relatively common word that usually has a positive sentiment. Turning to Figure 2, it is shown that the word "love" is by far the most common word shared between One Direction lyrics and Bing sentiment words. There are almost five times the number of occurrences of the word "love" compared to the most common negative word, "crazy". Based off of that, it may seem that there are far more positive words in One Direction songs than negative words. This is a topic I will explore later on.
+
+
+
+```{r}
+#| include: false 
+
+print(tidy_songs)
+```
+
+
+```{r}
+#| include: false
+
+one_direction |>
+  unnest_tokens(word, lyrics, token = "words") |>
+  anti_join(stop_words) |>
+  inner_join(bing_sentiments) |>
+  count(sentiment)
+```
+
+```{r}
+#| echo: false
+#| fig-cap: "Figure 3: Ten words with highest tf-idf values for each album."
+
+song_tfidf <- one_direction |>
+  unnest_tokens(word, lyrics) |>
+  anti_join(stop_words, by = "word") |>
+  count(album, word) |>
+  bind_tf_idf(word, album, n) |>
+  filter(album %in% c("Four", 
+                      "Made in the A.M.", 
+                      "Midnight Memories", 
+                      "Take Me Home", 
+                      "Up All Night")
+) |>
+  group_by(album) |>
+  slice_max(tf_idf, n = 10) |>
+  ungroup() |>
+  ggplot(aes(x = fct_reorder(word, tf_idf), 
+             y = tf_idf, 
+             fill = album)) +
+    geom_col(show.legend = FALSE) +
+    coord_flip() +
+    facet_wrap(~album, scales = "free") +
+    labs(y = "tf-idf value",
+         x = "Words with top ten tf-idf values")
+
+song_tfidf
+```
+
+# Ten Most "Important" Words in each One Direction Album
+Tf-idf analysis is a statistic that identifies words that are specifically important to one album in this case versus the rest of the albums. Words that are frequently contained in one album but not very common or nonexistent in other albums are given a high tf-idf value. Words with high tf-idf values are often words that are repeated often in a song and unique to that song. For example, "Olivia" is a song from the album "Made in the A.M." and is given the third highest tf-idf value for that album. Similarly, "18" is a song from the album "Four", and the word "eighteen" also has the third highest tf-idf value for that album. This type of analysis is insightful because goes beyond simply most common words in each album and provides an idea of the defining words of each album. 
+
+
+```{r}
+#| echo: false
+#| fig-cap: "Figure 4: Sentiment differences grouped by One Direction Albums."
+
+sentiment_plot <- one_direction |> 
+  unnest_tokens(word, lyrics) |>
+  filter(album %in% c("Four", 
+                      "Made in the A.M.", 
+                      "Midnight Memories", 
+                      "Take Me Home", 
+                      "Up All Night")
+) |>
+  group_by(album) |>
+  mutate(index = (row_number() - 1) %/% 70) |>
+  ungroup() |>
+  anti_join(stop_words, by = "word")|>
+  inner_join(bing_sentiments, by = "word") |>
+  count(album, index, sentiment) |>
+  pivot_wider(names_from = sentiment, 
+              values_from = n, 
+              values_fill = 0) |>
+  mutate(sentiment = positive - negative) |>
+  ggplot(aes(x = index, 
+             y = sentiment, 
+             fill = album)) +
+    geom_col(show.legend = FALSE) +
+    facet_wrap(~album, ncol = 2, scales = "free_x") +
+    labs(x = "Index - Grouped by every 70 words",
+         y = "Difference in Sentiment (positive - negative)")
+    
+sentiment_plot
+```
+# Alt Text
+Figure 4 is a collection of bar charts that display the sentiment trajectory of One Direction songs across their five albums with a separate graph for each album. On the x-axis are word groups that contain 70 words each, so each unit is a group of 70 consecutive words in the album. The x-axis ranges from 0 to 100 groups of words. On the y-axis is the difference in sentiment which is calculated by subtracting the number of negative words from the number of positive words. This sentiment difference ranges from -10 to 5. As described in more detail below, the graph shows that One Direction songs tend to have more negative words than positive words because there are more bars as well as taller bars extending in the negative direction on the whole. This is a relatively consistent finding across all five albums. 
+
+
+
+# Sentiment Trajectory Across One Direction Albums
+As mentioned above, "love" is a common positive word in One Direction songs, far exceeding any other word in number of occurrences. Because of this, I was curious to see the breakdown of positive versus negative words in One Direction songs. To investigate this, I first made a tibble with the count of both positive and negative words. I found that there were 748 negative word occurrences and 472 positive word occurrence. This was a surprising finding to me because overall, One Direction songs seem positively leaning in my opinion. To further investigate this I created a plot that placed lyrics into groups of 70 words to explore sentiment trajectory across One Direction Albums. This plot seemed to match the positive to negative word ratio found above. Especially for the album "Up All Night", there are very few positive bars compared to negative bars. "Take Me Home" seems to have the tallest positive and negative bars, showing large differences in word groups. Overall, this plot seems to align with the result of One Direction songs having more negative words than positive words. 
+
+
+
+
+# Conclusion
+The goal of this project was to analyze One Direction songs through methods such as sentiment analysis and tf-idf analysis. While working on the project, I found some results that were expected such as the most common words in One Direction songs that appeared in the word cloud being romantically themed words. I also found some surprising results such as the number of negative words in One Direction songs far outweighing the number of positive words. Performing text analysis in this project provided insights on the lyrics and style of One Direction that I was not previously aware of and offered a glimpse into the lyrical breakdown of a popular and influential music group.
+
+
+
+
+
+
+
+
+
+
+

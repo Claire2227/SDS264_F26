@@ -1,0 +1,314 @@
+---
+title: "plotly"
+subtitle: "R Tip of the Day"
+author: "Claire Faulkner"
+format: 
+  revealjs:
+    slide-number: true
+    transition: slide
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(plotly)
+library(palmerpenguins)
+library(gapminder)
+```
+
+## What is plotly? {auto-animate="true"}
+
+- plotly turns regular graphs into interactive visualizations such as interactive scatterplots, 3D scatterplots, and animated graphs
+- plotly works with other R libraries such as ggplot2 to further enhance graphics
+
+
+## Using plotly to create interactive scatterplots. {auto-animate="true"}
+
+```{.r code-line-numbers="1-4|5-8"}
+plot_ly(
+  data = penguins,
+  x = ~bill_length_mm,
+  y = ~flipper_length_mm,
+  color = ~species,
+  type = "scatter",
+  mode = "markers"
+)
+```
+
+## Using plotly to create interactive scatterplots. {auto-animate="true"}
+
+```{r}
+plot_ly(
+  data = penguins,
+  x = ~bill_length_mm,
+  y = ~flipper_length_mm,
+  color = ~species,
+  type = "scatter",
+  mode = "markers"
+)
+```
+
+
+## Using ggplot with plotly to create interactive scatterplots. {auto-animate="true"}
+
+```{.r code-line-numbers="1-5|6"}
+ggplot_graph <- penguins |>
+  ggplot(aes(x = bill_length_mm,
+      y = flipper_length_mm,
+      color = species)) +
+  geom_point()
+ggplotly(ggplot_graph)
+```
+
+
+## Using ggplot with plotly to create interactive scatterplots. {auto-animate="true"}
+
+```{r}
+ggplot_graph <- penguins |>
+  ggplot(aes(x = bill_length_mm,
+      y = flipper_length_mm,
+      color = species)) +
+  geom_point()
+ggplotly(ggplot_graph)
+```
+
+
+## Using plotly to create interactive histograms. {auto-animate="true"}
+
+```{.r code-line-numbers="1-10|5"}
+plot_ly(
+  data = penguins,
+  x = ~body_mass_g,
+  color = ~species,
+  type = "histogram",
+  opacity = 0.6
+) |>
+  layout(
+    barmode = "overlay"
+  )
+```
+
+
+
+## Using plotly to create interactive histograms. {auto-animate="true"}
+
+```{r}
+plot_ly(
+  data = penguins,
+  x = ~body_mass_g,
+  color = ~species,
+  type = "histogram",
+  opacity = 0.6
+) |>
+  layout(
+    barmode = "overlay"
+  )
+```
+
+
+
+
+## Using plotly to create 3D scatterplots. {auto-animate="true"}
+
+```{.r code-line-numbers="1-9|7"}
+plot_ly(
+  data = penguins,
+  x = ~bill_length_mm,
+  y = ~flipper_length_mm,
+  z = ~bill_depth_mm,
+  color = ~species,
+  type = "scatter3d",
+  mode = "markers"
+)
+```
+
+
+
+## Using plotly to create 3D scatterplots. {auto-animate="true"}
+
+```{r}
+plot_ly(
+  data = penguins,
+  x = ~bill_length_mm,
+  y = ~flipper_length_mm,
+  z = ~bill_depth_mm,
+  color = ~species,
+  type = "scatter3d",
+  mode = "markers"
+)
+```
+
+
+## Using plotly to model plots over time. {auto-animate="true"}
+
+```{.r code-line-numbers="1-10|7"}
+plot_ly(
+  data = gapminder::gapminder,
+  x = ~gdpPercap,
+  y = ~lifeExp,
+  size = ~pop,
+  color = ~continent,
+  frame = ~year,
+  type = "scatter",
+  mode = "markers"
+)
+```
+
+
+
+## Using plotly to model plots over time. {auto-animate="true"}
+
+```{r}
+plot_ly(
+  data = gapminder::gapminder,
+  x = ~gdpPercap,
+  y = ~lifeExp,
+  size = ~pop,
+  color = ~continent,
+  frame = ~year,
+  type = "scatter",
+  mode = "markers"
+)
+```
+
+
+## Using plotly to create interactive maps. {auto-animate="true"}
+
+```{.r code-line-numbers="1-21"}
+data("quakes")
+plot_ly(
+  data = quakes,
+  type = "scattermapbox",
+  mode = "markers",
+  lat = ~lat,
+  lon = ~long,
+  marker = list(size = 8),
+  text = ~paste(
+    "Magnitude:", mag,
+    "<br>Depth:", depth, "km"
+  ),
+  hoverinfo = "text"
+) |>
+  layout(
+    mapbox = list(
+      style = "open-street-map",
+      zoom = 3,
+      center = list(lat = -20, lon = 180)
+    )
+  )
+```
+
+
+
+
+## Using plotly to create interactive maps. {auto-animate="true"}
+
+```{r}
+data("quakes")
+plot_ly(
+  data = quakes,
+  type = "scattermapbox",
+  mode = "markers",
+  lat = ~lat,
+  lon = ~long,
+  marker = list(size = 8),
+  text = ~paste(
+    "Magnitude:", mag,
+    "<br>Depth:", depth, "km"
+  ),
+  hoverinfo = "text"
+) |>
+  layout(
+    mapbox = list(
+      style = "open-street-map",
+      zoom = 3,
+      center = list(lat = -20, lon = 180)
+    )
+  )
+```
+
+
+## Using plotly to model functions in three dimensions. {auto-animate="true"}
+
+```{.r code-line-numbers="1-6"}
+x <- seq(-5, 5, length.out = 50)
+y <- seq(-5, 5, length.out = 50)
+z <- outer(x, y, function(x, y) x^2 + y^2)
+
+plot_ly(x = x, y = y, z = z) |>
+  add_surface()
+```
+
+
+
+## Using plotly to model functions in three dimensions. {auto-animate="true"}
+
+```{r}
+x <- seq(-5, 5, length.out = 50)
+y <- seq(-5, 5, length.out = 50)
+z <- outer(x, y, function(x, y) x^2 + y^2)
+
+plot_ly(x = x, y = y, z = z) |>
+  add_surface()
+```
+
+
+## Using plotly to model stock prices. {auto-animate="true"}
+
+```{.r code-line-numbers="1-16"}
+data("EuStockMarkets")
+stock_data <- data.frame(
+  day = seq_len(nrow(EuStockMarkets)),
+  DAX = EuStockMarkets[, "DAX"],
+  SMI = EuStockMarkets[, "SMI"],
+  CAC = EuStockMarkets[, "CAC"],
+  FTSE = EuStockMarkets[, "FTSE"]
+)
+
+plot_ly(
+  data = stock_data,
+  x = ~day) |>
+  add_lines(y = ~DAX, name = "DAX") |>
+  add_lines(y = ~SMI, name = "SMI") |>
+  add_lines(y = ~CAC, name = "CAC") |>
+  add_lines(y = ~FTSE, name = "FTSE") |>
+  layout(
+    title = "European Stock Market Index Values",
+    xaxis = list(title = "Trading Day"),
+    yaxis = list(title = "Index Value")
+  )
+```
+
+
+
+## Using plotly to model stock prices. {auto-animate="true"}
+
+```{r}
+data("EuStockMarkets")
+stock_data <- data.frame(
+  day = seq_len(nrow(EuStockMarkets)),
+  DAX = EuStockMarkets[, "DAX"],
+  SMI = EuStockMarkets[, "SMI"],
+  CAC = EuStockMarkets[, "CAC"],
+  FTSE = EuStockMarkets[, "FTSE"]
+)
+
+plot_ly(
+  data = stock_data,
+  x = ~day) |>
+  add_lines(y = ~DAX, name = "DAX") |>
+  add_lines(y = ~SMI, name = "SMI") |>
+  add_lines(y = ~CAC, name = "CAC") |>
+  add_lines(y = ~FTSE, name = "FTSE") |>
+  layout(
+    title = "European Stock Market Index Values",
+    xaxis = list(title = "Trading Day"),
+    yaxis = list(title = "Index Value")
+  )
+```
+
+
+## Thank you for listening
